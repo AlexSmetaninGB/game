@@ -163,9 +163,9 @@ foreach ($cards as &$card) {
 
         <!-- Лог игры -->
         <section class="game-log">
-            <h3>Лог игры:</h3>
-            <ul id="game-log"></ul>
-        </section>
+    <h3>Лог игры:</h3>
+    <ul id="game-log"></ul>
+</section>
     </div>
 
     <!-- Подключение JavaScript -->
