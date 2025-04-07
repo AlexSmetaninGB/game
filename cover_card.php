@@ -14,7 +14,7 @@ if (!$game_id || !$played_card_id || !$covering_card_id) {
 try {
     // Получаем текущее состояние игры
     $stmt_game = $mysqli->prepare("
-        SELECT g.current_turn, g.attacker_id, g.trump_suit 
+        SELECT g.current_turn, g.trump_suit 
         FROM games g 
         WHERE g.id = ?
     ");
@@ -29,8 +29,8 @@ try {
 
     // Определяем ID текущего пользователя
     $current_user_id = $_SESSION['user_id'];
-    if ($current_user_id != $game_data['attacker_id']) { // Только обороняющийся может покрывать
-        echo json_encode(['success' => false, 'message' => 'Вы не можете покрывать карты сейчас!']);
+    if ($current_user_id != $game_data['current_turn']) { // Только обороняющийся может покрывать
+        echo json_encode(['success' => false, 'message' => 'Сейчас ваш ход атаки!']);
         exit;
     }
 
@@ -95,14 +95,14 @@ try {
     if ($table_count === 0) { // Если все карты покрыты
         $new_attacker_id = $current_user_id; // Обороняющийся становится атакующим
     } else {
-        $new_attacker_id = $game_data['attacker_id']; // Иначе ход остаётся за атакующим
+        $new_attacker_id = $game_data['current_turn']; // Иначе ход остаётся за атакующим
     }
 
     // Передаём ход
     $stmt_turn = $mysqli->prepare("
         UPDATE games 
         SET current_turn = IF(current_turn = player1_id, player2_id, player1_id), 
-            attacker_id = ? 
+            attacker_id = ?
         WHERE id = ?
     ");
     $stmt_turn->bind_param("ii", $new_attacker_id, $game_id);
@@ -111,7 +111,6 @@ try {
         exit;
     }
 
-    // Возвращаем успешный ответ
     echo json_encode([
         'success' => true,
         'message' => 'Вы покрыли карту!',
