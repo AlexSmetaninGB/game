@@ -306,7 +306,13 @@ function updateTableCards(tableCards) {
 
     console.log('Карты на столе успешно обновлены:', tableCards);
 }
+// Инициализация кнопки "Взять карты"
+document.getElementById('take-cards-btn').addEventListener('click', function () {
+    takeCardsFromTable();
+});
 
+// Периодическое обновление состояния игры
+setInterval(() => loadArenaState(gameId), 5000);
 // Активация/деактивация кнопки "Взять карты"
 function toggleTakeCardsButton(state) {
     const button = document.getElementById('take-cards-btn');
@@ -447,22 +453,17 @@ function checkGameStatus() {
     fetch(`php/check_game_status.php?game_id=${gameId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                if (data.is_finished) {
-                    if (currentUserID === data.winner_id) {
-                        alert('Поздравляем! Вы победили!');
-                    } else {
-                        alert('Вы проиграли. Победил соперник.');
-                    }
-                    window.location.href = 'lobby.php'; // Перенаправляем в лобби
+            if (data.success && data.is_finished) {
+                if (currentUserID === data.winner_id) {
+                    alert('Поздравляем! Вы победили!');
+                } else {
+                    alert('Вы проиграли. Победил соперник.');
                 }
-            } else {
-                console.error('Ошибка при проверке статуса игры:', data.message);
-                alert('Произошла ошибка при проверке статуса игры!');
+                window.location.href = 'lobby.php';
             }
         })
         .catch(error => {
-            console.error('Ошибка сети при проверке статуса игры:', error);
+            console.error('Ошибка при проверке статуса игры:', error);
             alert('Не удалось проверить статус игры!');
         });
 }
@@ -521,7 +522,8 @@ function coverCard(playedCardId, coveringCardId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Вы покрыли карты');
+                alert('Вы покрыли карту!');
+                // Удаляем закрытую карту со стола
                 const tableDiv = document.getElementById('table-cards');
                 if (tableDiv) {
                     const playedCardElement = Array.from(tableDiv.children).find(card => card.dataset.cardId == playedCardId);
@@ -530,6 +532,7 @@ function coverCard(playedCardId, coveringCardId) {
                     }
                 }
 
+                // Удаляем использованную карту из руки
                 const handList = document.getElementById('player-hand');
                 if (handList) {
                     const coveringCardElement = Array.from(handList.children).find(card => card.dataset.cardId == coveringCardId);
@@ -538,16 +541,21 @@ function coverCard(playedCardId, coveringCardId) {
                     }
                 }
 
+                // Обновляем текущий ход
                 highlightActivePlayer(data.current_turn);
                 document.getElementById('current-turn').dataset.currentTurn = data.current_turn;
+
+                // Проверяем статус игры
                 checkGameStatus();
+
+                // Обновляем состояние игры
                 loadArenaState(gameId);
             } else {
-                alert('Карта не подходит');
+                alert(data.message); // Например: "Карта не подходит для покрытия!"
             }
         })
         .catch(error => {
-            console.error(error);
+            console.error('Ошибка сети при покрытии карты:', error);
             alert('Не удалось покрыть карту!');
         });
 }
