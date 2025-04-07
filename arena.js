@@ -171,6 +171,7 @@ async function loadArenaState(gameId) {
             updateTableCards(state.table_cards);
  // Обновление информации об атакующем игроке
  updateAttackerInfo(state);
+ toggleTakeCardsButton(state);
             // Обновление руки текущего игрока
             const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
             if (userId === state.player1_hand[0]?.player_id) {
@@ -659,3 +660,14 @@ document.getElementById('arena-chat-form')?.addEventListener('submit', function 
             alert('Не удалось отправить сообщение!');
         });
 });
+function logGameAction(action) {
+    const gameLog = document.getElementById('game-log');
+    if (!gameLog) return;
+
+    const li = document.createElement('li');
+    li.textContent = action;
+    gameLog.appendChild(li);
+
+    // Прокручиваем лог вниз
+    gameLog.scrollTop = gameLog.scrollHeight;
+}
