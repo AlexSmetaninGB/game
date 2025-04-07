@@ -172,6 +172,8 @@ async function loadArenaState(gameId) {
  // Обновление информации об атакующем игроке
  updateAttackerInfo(state);
  toggleTakeCardsButton(state);
+    // Добавляем обработчики для покрытия карт
+    addCoverCardHandlers(state);
             // Обновление руки текущего игрока
             const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
             if (userId === state.player1_hand[0]?.player_id) {
@@ -545,11 +547,8 @@ function coverCard(playedCardId, coveringCardId) {
                 highlightActivePlayer(data.current_turn);
                 document.getElementById('current-turn').dataset.currentTurn = data.current_turn;
 
-                // Проверяем статус игры
-                checkGameStatus();
-
-                // Обновляем состояние игры
-                loadArenaState(gameId);
+                checkGameStatus(); // Проверяем статус игры
+                loadArenaState(gameId); // Обновляем состояние игры
             } else {
                 alert(data.message); // Например: "Карта не подходит для покрытия!"
             }
@@ -571,20 +570,14 @@ function checkAllCardsCovered(state) {
 // Функция для проверки, можно ли покрыть карту
 function canCoverCard(topCard, coveringCard, trumpSuit) {
     const values = { '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'валет': 11, 'дама': 12, 'король': 13, 'туз': 14 };
-
     const topValue = values[topCard.card_value] ?? 0;
     const coveringValue = values[coveringCard.card_value] ?? 0;
 
-    // Если масти совпадают, сравниваем значения
     if (topCard.card_suit === coveringCard.card_suit) {
-        return coveringValue > topValue;
+        return coveringValue > topValue; // Если масти совпадают, сравниваем значения
+    } else if (coveringCard.card_suit === trumpSuit) {
+        return true; // Козырь всегда сильнее
     }
-
-    // Если обороняющаяся карта — козырь, она всегда сильнее
-    if (coveringCard.card_suit === trumpSuit) {
-        return true;
-    }
-
     return false; // В остальных случаях покрытие невозможно
 }
 // Добавление обработчиков для покрытия карт
@@ -593,12 +586,7 @@ function addCoverCardHandlers(state) {
     const playerHand = document.getElementById('player-hand');
     if (!tableCards || !playerHand) return;
 
-    removeEventListeners(playerHand);
-
-    if (!state.player_hand || !Array.isArray(state.player_hand)) {
-        console.error('Ошибка: player_hand не определён!');
-        return;
-    }
+    removeEventListeners(playerHand); // Снимаем старые обработчики
 
     state.table_cards.forEach(topCard => {
         const topCardElement = Array.from(tableCards.children).find(card => card.dataset.cardId == topCard.id);
@@ -609,11 +597,11 @@ function addCoverCardHandlers(state) {
             if (!handCardElement) return;
 
             if (canCoverCard(topCard, handCard, state.trump_suit)) {
-                handCardElement.classList.add('can-cover');
+                handCardElement.classList.add('can-cover'); // Помечаем возможные для покрытия карты
                 handCardElement.addEventListener('click', () => coverCard(topCard.id, handCard.id));
             } else {
-                handCardElement.classList.remove('can-cover');
-                handCardElement.removeEventListener('click', coverCard);
+                handCardElement.classList.remove('can-cover'); // Убираем метку для невозможных карт
+                handCardElement.removeEventListener('click', coverCard); // Снимаем обработчик
             }
         });
     });
@@ -627,7 +615,6 @@ function removeEventListeners(playerHand) {
         handCard.classList.remove('can-cover');
     });
 }
-
 
 document.getElementById('arena-chat-form')?.addEventListener('submit', function (event) {
     event.preventDefault(); // Предотвращаем стандартную отправку формы
