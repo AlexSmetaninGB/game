@@ -14,7 +14,7 @@ if (!$game_id || !$played_card_id || !$covering_card_id) {
 try {
     // Получаем текущее состояние игры
     $stmt_game = $mysqli->prepare("
-        SELECT g.current_turn, g.trump_suit 
+        SELECT g.current_turn, g.attacker_id, g.trump_suit 
         FROM games g 
         WHERE g.id = ?
     ");
@@ -24,6 +24,13 @@ try {
 
     if (!$game_data) {
         echo json_encode(['success' => false, 'message' => 'Игра не найдена!']);
+        exit;
+    }
+
+    // Определяем ID текущего пользователя
+    $current_user_id = $_SESSION['user_id'];
+    if ($current_user_id != $game_data['attacker_id']) { // Только обороняющийся может покрывать
+        echo json_encode(['success' => false, 'message' => 'Вы не можете покрывать карты сейчас!']);
         exit;
     }
 
@@ -48,7 +55,7 @@ try {
 
     // Проверяем правила покрытия
     if (!canCoverCard($playedCard, $coveringCard, $game_data['trump_suit'])) {
-        echo json_encode(['success' => false, 'message' => 'Так нельзя покрыть!']);
+        echo json_encode(['success' => false, 'message' => 'Карта не подходит для покрытия!']);
         exit;
     }
 
@@ -75,22 +82,41 @@ try {
         exit;
     }
 
-    // Передаём ход другому игроку
+    // Проверяем, остались ли ещё непокрытые карты
+    $stmt_table = $mysqli->prepare("
+        SELECT COUNT(*) AS count 
+        FROM cards 
+        WHERE game_id = ? AND `table` = 1
+    ");
+    $stmt_table->bind_param("i", $game_id);
+    $stmt_table->execute();
+    $table_count = $stmt_table->get_result()->fetch_assoc()['count'];
+
+    if ($table_count === 0) { // Если все карты покрыты
+        $new_attacker_id = $current_user_id; // Обороняющийся становится атакующим
+    } else {
+        $new_attacker_id = $game_data['attacker_id']; // Иначе ход остаётся за атакующим
+    }
+
+    // Передаём ход
     $stmt_turn = $mysqli->prepare("
         UPDATE games 
-        SET current_turn = IF(current_turn = player1_id, player2_id, player1_id) 
+        SET current_turn = IF(current_turn = player1_id, player2_id, player1_id), 
+            attacker_id = ? 
         WHERE id = ?
     ");
-    $stmt_turn->bind_param("i", $game_id);
+    $stmt_turn->bind_param("ii", $new_attacker_id, $game_id);
     if (!$stmt_turn->execute()) {
         echo json_encode(['success' => false, 'message' => 'Ошибка при передаче хода!']);
         exit;
     }
 
+    // Возвращаем успешный ответ
     echo json_encode([
         'success' => true,
-        'message' => 'Карта успешно покрыта!',
-        'current_turn' => $stmt_turn->get_result()->fetch_assoc()['current_turn']
+        'message' => 'Вы покрыли карту!',
+        'current_turn' => $new_attacker_id,
+        'attacker_id' => $new_attacker_id
     ]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => 'Произошла ошибка: ' . $e->getMessage()]);
