@@ -506,11 +506,7 @@ function loadArenaChatMessages(gameId) {
 // Функция покрытия карты
 function coverCard(playedCardId, coveringCardId) {
     const gameId = window.gameId;
-    if (!gameId) {
-        console.error('Game ID не определена!');
-        alert('Произошла ошибка! Game ID не определена.');
-        return;
-    }
+    if (!gameId) return;
 
     if (!isYourTurn()) {
         alert('Сейчас не ваш ход!');
@@ -525,9 +521,7 @@ function coverCard(playedCardId, coveringCardId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(data.message); // Сообщение об успешном покрытии
-
-                // Удаляем закрытую карту со стола
+                alert('Вы покрыли карты');
                 const tableDiv = document.getElementById('table-cards');
                 if (tableDiv) {
                     const playedCardElement = Array.from(tableDiv.children).find(card => card.dataset.cardId == playedCardId);
@@ -536,7 +530,6 @@ function coverCard(playedCardId, coveringCardId) {
                     }
                 }
 
-                // Удаляем использованную карту из руки
                 const handList = document.getElementById('player-hand');
                 if (handList) {
                     const coveringCardElement = Array.from(handList.children).find(card => card.dataset.cardId == coveringCardId);
@@ -545,21 +538,16 @@ function coverCard(playedCardId, coveringCardId) {
                     }
                 }
 
-                // Обновляем текущий ход
                 highlightActivePlayer(data.current_turn);
-
-                // Обновляем data-атрибут текущего хода
                 document.getElementById('current-turn').dataset.currentTurn = data.current_turn;
-
-                checkGameStatus(); // Проверяем статус игры
-                loadArenaState(gameId); // Обновляем состояние игры
+                checkGameStatus();
+                loadArenaState(gameId);
             } else {
-                alert(data.message); // Сообщение об ошибке (например, "Так нельзя покрыть!")
-                console.error('Ошибка при покрытии карты:', data.message);
+                alert('Карта не подходит');
             }
         })
         .catch(error => {
-            console.error('Ошибка сети при покрытии карты:', error);
+            console.error(error);
             alert('Не удалось покрыть карту!');
         });
 }
@@ -597,10 +585,13 @@ function addCoverCardHandlers(state) {
     const playerHand = document.getElementById('player-hand');
     if (!tableCards || !playerHand) return;
 
-    // Снимаем предыдущие обработчики
     removeEventListeners(playerHand);
 
-    // Для каждой карты на столе добавляем возможные варианты покрытия
+    if (!state.player_hand || !Array.isArray(state.player_hand)) {
+        console.error('Ошибка: player_hand не определён!');
+        return;
+    }
+
     state.table_cards.forEach(topCard => {
         const topCardElement = Array.from(tableCards.children).find(card => card.dataset.cardId == topCard.id);
         if (!topCardElement) return;
@@ -609,13 +600,12 @@ function addCoverCardHandlers(state) {
             const handCardElement = Array.from(playerHand.children).find(card => card.dataset.cardId == handCard.id);
             if (!handCardElement) return;
 
-            // Если карта может покрыть, добавляем обработчик клика
             if (canCoverCard(topCard, handCard, state.trump_suit)) {
-                handCardElement.classList.add('can-cover'); // Помечаем возможные для покрытия карты
+                handCardElement.classList.add('can-cover');
                 handCardElement.addEventListener('click', () => coverCard(topCard.id, handCard.id));
             } else {
-                handCardElement.classList.remove('can-cover'); // Убираем метку для невозможных карт
-                handCardElement.removeEventListener('click', coverCard); // Снимаем обработчик
+                handCardElement.classList.remove('can-cover');
+                handCardElement.removeEventListener('click', coverCard);
             }
         });
     });
