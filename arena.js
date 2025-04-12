@@ -153,10 +153,26 @@ let isHandLoaded = false; // Флаг для проверки загрузки �
 async function loadArenaState(gameId) {
     try {
         const response = await fetch(`php/get_arena_state.php?game_id=${gameId}`);
-        const data = await response.json();
+        console.log('HTTP Response Status:', response.status); // Логируем статус ответа
 
+        if (!response.ok) {
+            // Если ответ сервера не successful, получаем текст ошибки
+            const text = await response.text();
+            console.error('Ошибка сервера:', text);
+            alert('Произошла ошибка на сервере!');
+            return;
+        }
+
+        const data = await response.json();
         if (data.success) {
             const state = data.state;
+
+            // Проверяем, существует ли player_hand
+            if (!state.player1_hand || !state.player2_hand) {
+                console.error('Ошибка: player_hand не определён!');
+                alert('Не удалось загрузить вашу руку!');
+                return;
+            }
 
             // Обновление индикатора хода
             highlightActivePlayer(state.current_turn);
@@ -164,31 +180,18 @@ async function loadArenaState(gameId) {
             // Обновление карт на столе
             updateTableCards(state.table_cards);
 
-            // Определяем текущую руку игрока
-            const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
-            let playerHand = [];
-            if (userId === state.player1_hand[0]?.player_id) {
-                playerHand = state.player1_hand;
-            } else if (userId === state.player2_hand[0]?.player_id) {
-                playerHand = state.player2_hand;
-            }
-
-            // Проверяем, существует ли player_hand
-            if (!Array.isArray(playerHand)) {
-                console.error('Ошибка: player_hand не определён!');
-                return;
-            }
-
             // Обновление руки текущего игрока
-            updatePlayerHand(playerHand);
-
-            // Добавляем обработчики для покрытия карт
-            addCoverCardHandlers({ ...state, player_hand: playerHand });
+            const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+            if (userId === state.player1_hand[0]?.player_id) {
+                updatePlayerHand(state.player1_hand);
+            } else if (userId === state.player2_hand[0]?.player_id) {
+                updatePlayerHand(state.player2_hand);
+            }
 
             checkGameStatus(); // Проверяем статус игры
         } else {
             console.error('Ошибка при загрузке состояния игры:', data.message);
-            alert('Не удалось загрузить состояние игры!');
+            alert(data.message);
         }
     } catch (error) {
         console.error('Ошибка сети при загрузке состояния игры:', error);
