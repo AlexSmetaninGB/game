@@ -164,7 +164,7 @@ async function loadArenaState(gameId) {
             // Обновление карт на столе
             updateTableCards(state.table_cards);
 
-            // Обновление руки текущего игрока
+            // Определяем текущую руку игрока
             const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
             let playerHand = [];
             if (userId === state.player1_hand[0]?.player_id) {
@@ -172,12 +172,18 @@ async function loadArenaState(gameId) {
             } else if (userId === state.player2_hand[0]?.player_id) {
                 playerHand = state.player2_hand;
             }
+
+            // Проверяем, существует ли player_hand
+            if (!Array.isArray(playerHand)) {
+                console.error('Ошибка: player_hand не определён!');
+                return;
+            }
+
+            // Обновление руки текущего игрока
             updatePlayerHand(playerHand);
 
             // Добавляем обработчики для покрытия карт
-            if (state.current_turn !== userId) { // Только если это не ваш ход
-                addCoverCardHandlers({ ...state, player_hand: playerHand });
-            }
+            addCoverCardHandlers({ ...state, player_hand: playerHand });
 
             checkGameStatus(); // Проверяем статус игры
         } else {
@@ -205,72 +211,38 @@ function updateAttackerInfo(state) {
 function updatePlayerHand(updatedHand) {
     const handList = document.getElementById('player-hand');
     if (!handList) {
-        console.error('Элемент "Рука игрока" (player-hand) не найден!');
+        console.error('Элемент "Рука игрока" не найден!');
         return;
     }
-
-    console.log('Обновление руки игрока:', updatedHand);
 
     handList.innerHTML = ''; // Очищаем список перед обновлением
 
-    if (Array.isArray(updatedHand) && updatedHand.length > 0) {
-        updatedHand.forEach(card => {
-            const li = document.createElement('li');
-            li.dataset.cardId = card.id;
-
-            const img = document.createElement('img');
-            img.src = card.card_image; // Путь к изображению карты
-            img.alt = `${card.card_value} ${card.card_suit}`;
-            img.classList.add('card-image');
-
-            li.appendChild(img);
-
-            // Добавляем обработчик клика для выбора карты
-            li.addEventListener('click', () => selectCardToPlay(card.id));
-
-            handList.appendChild(li);
-        });
-    } else {
+    if (!updatedHand || !Array.isArray(updatedHand)) {
         console.warn('Рука игрока пуста или данные отсутствуют.');
+        return;
     }
+
+    updatedHand.forEach(card => {
+        const li = document.createElement('li');
+        li.dataset.cardId = card.id;
+
+        const img = document.createElement('img');
+        img.src = card.card_image; // Путь к изображению карты
+        img.alt = `${card.card_value} ${card.card_suit}`;
+        img.classList.add('card-image');
+
+        li.appendChild(img);
+
+        // Добавляем обработчик клика для выбора карты
+        li.addEventListener('click', () => selectCardToPlay(card.id));
+
+        handList.appendChild(li);
+    });
 }
 // Выделение активного игрока
 function highlightActivePlayer(currentTurn) {
-    const currentPlayerName = document.getElementById('current-player-name');
-    if (!currentPlayerName) {
-        console.error('Элемент "Текущий ход" не найден!');
-        return;
-    }
-
-    // Получаем данные о игроках из DOM
-    const gameInfo = document.getElementById('game-info');
-    if (!gameInfo) {
-        console.error('Элемент "game-info" не найден!');
-        return;
-    }
-
-    const player1Id = parseInt(gameInfo.dataset.player1Id, 10); // ID первого игрока
-    const player2Id = parseInt(gameInfo.dataset.player2Id, 10); // ID второго игрока
-    const player1Name = gameInfo.dataset.player1Name; // Имя первого игрока
-    const player2Name = gameInfo.dataset.player2Name; // Имя второго игрока
-
-    let playerName = 'Соперник'; // По умолчанию
-
-    // Определяем имя текущего ходящего игрока
-    if (currentTurn === player1Id) {
-        playerName = player1Name; // Имя первого игрока
-    } else if (currentTurn === player2Id) {
-        playerName = player2Name; // Имя второго игрока
-    }
-
-    // Обновляем текст индикатора хода
-    currentPlayerName.textContent = currentTurn === currentUserID ? 'Ваш ход!' : `Ходит: ${playerName}`;
-    console.log(`Обновление индикатора хода: ${playerName}`);
-
-    // Выделение активного игрока
     const player1Card = document.getElementById('player1-card');
     const player2Card = document.getElementById('player2-card');
-
     if (!player1Card || !player2Card) {
         console.error('Элементы игроков не найдены!');
         return;
@@ -279,10 +251,18 @@ function highlightActivePlayer(currentTurn) {
     player1Card.classList.remove('active-turn');
     player2Card.classList.remove('active-turn');
 
+    const player1Id = <?= json_encode($player1_id) ?>;
+    const player2Id = <?= json_encode($player2_id) ?>;
+
     if (currentTurn === player1Id) {
         player1Card.classList.add('active-turn');
     } else if (currentTurn === player2Id) {
         player2Card.classList.add('active-turn');
+    }
+
+    const currentPlayerName = document.getElementById('current-player-name');
+    if (currentPlayerName) {
+        currentPlayerName.textContent = currentTurn === currentUserID ? 'Ваш ход!' : 'Ходит: Соперник';
     }
 }
 // Обновление карт на столе
