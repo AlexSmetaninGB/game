@@ -9,7 +9,7 @@ if (!$game_id) {
 }
 
 try {
-    // Текущее состояние игры
+    // Получаем текущее состояние игры
     $stmt_game = $mysqli->prepare("
         SELECT 
             g.trump_suit, 
@@ -65,14 +65,6 @@ try {
     $stmt_player2_hand->execute();
     $player2_hand = $stmt_player2_hand->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    // Определяем имя атакующего игрока
-    $attacker_name = '';
-    if ($game_data['attacker_id'] == $player1_id) {
-        $attacker_name = $game_data['player1_name'];
-    } elseif ($game_data['attacker_id'] == $player2_id) {
-        $attacker_name = $game_data['player2_name'];
-    }
-
     // Добавляем пути к изображениям карт
     foreach ($table_cards as &$card) {
         $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
@@ -90,7 +82,6 @@ try {
         'state' => [
             'current_turn' => $game_data['current_turn'], // ID активного игрока
             'attacker_id' => $game_data['attacker_id'], // ID атакующего игрока
-            'attacker_name' => $attacker_name, // Имя атакующего игрока
             'trump_suit' => $game_data['trump_suit'], // Козырная масть
             'table_cards' => $table_cards, // Карты на столе
             'player1_hand' => $player1_hand, // Рука первого игрока
