@@ -73,6 +73,18 @@ try {
         $attacker_name = $game_data['player2_name'];
     }
 
+    // Добавляем пути к изображениям карт
+    foreach ($table_cards as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+    foreach ($player1_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+    foreach ($player2_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+
+    // Возвращаем успешный ответ
     echo json_encode([
         'success' => true,
         'state' => [
