@@ -153,24 +153,15 @@ let isHandLoaded = false; // Флаг для проверки загрузки �
 async function loadArenaState(gameId) {
     try {
         const response = await fetch(`php/get_arena_state.php?game_id=${gameId}`);
-        console.log('HTTP Response Status:', response.status); // Логируем статус ответа
-
-        if (!response.ok) {
-            // Если ответ сервера не successful, получаем текст ошибки
-            const text = await response.text();
-            console.error('Ошибка сервера:', text);
-            alert('Произошла ошибка на сервере!');
-            return;
-        }
-
         const data = await response.json();
+
         if (data.success) {
             const state = data.state;
 
-            // Проверяем, существует ли player_hand
-            if (!state.player1_hand || !state.player2_hand) {
-                console.error('Ошибка: player_hand не определён!');
-                alert('Не удалось загрузить вашу руку!');
+            // Проверяем, существуют ли player1_hand и player2_hand
+            if (!Array.isArray(state.player1_hand) || !Array.isArray(state.player2_hand)) {
+                console.error('Ошибка: player1_hand или player2_hand не являются массивами!');
+                alert('Не удалось загрузить состояние игры!');
                 return;
             }
 
@@ -182,16 +173,24 @@ async function loadArenaState(gameId) {
 
             // Обновление руки текущего игрока
             const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+            if (isNaN(userId)) {
+                console.error('Ошибка: User ID не определён!');
+                alert('Произошла ошибка! User ID не определён.');
+                return;
+            }
+
             if (userId === state.player1_hand[0]?.player_id) {
                 updatePlayerHand(state.player1_hand);
             } else if (userId === state.player2_hand[0]?.player_id) {
                 updatePlayerHand(state.player2_hand);
+            } else {
+                console.warn('Текущий пользователь не найден в player_hand');
             }
 
             checkGameStatus(); // Проверяем статус игры
         } else {
             console.error('Ошибка при загрузке состояния игры:', data.message);
-            alert(data.message);
+            alert('Не удалось загрузить состояние игры!');
         }
     } catch (error) {
         console.error('Ошибка сети при загрузке состояния игры:', error);
@@ -220,8 +219,8 @@ function updatePlayerHand(updatedHand) {
 
     handList.innerHTML = ''; // Очищаем список перед обновлением
 
-    if (!updatedHand || !Array.isArray(updatedHand)) {
-        console.warn('Рука игрока пуста или данные отсутствуют.');
+    if (!Array.isArray(updatedHand)) {
+        console.warn('Обновляемая рука не является массивом!');
         return;
     }
 
@@ -283,8 +282,6 @@ function updateTableCards(tableCards) {
         img.dataset.cardId = card.id; // Для идентификации карты
         tableDiv.appendChild(img);
     });
-
-    console.log('Карты на столе успешно обновлены:', tableCards);
 }
 // Инициализация кнопки "Взять карты"
 document.getElementById('take-cards-btn').addEventListener('click', function () {
