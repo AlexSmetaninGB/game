@@ -9,7 +9,7 @@ if (!$game_id) {
 }
 
 try {
-    // Текущее состояние игры
+    // Получаем текущее состояние игры
     $stmt_game = $mysqli->prepare("
         SELECT 
             g.trump_suit, 
@@ -65,6 +65,17 @@ try {
     $stmt_player2_hand->execute();
     $player2_hand = $stmt_player2_hand->get_result()->fetch_all(MYSQLI_ASSOC);
 
+    // Добавляем пути к изображениям карт
+    foreach ($table_cards as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+    foreach ($player1_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+    foreach ($player2_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+
     // Если массивы пустые, возвращаем их как []
     if (empty($player1_hand)) {
         $player1_hand = [];
@@ -86,6 +97,8 @@ try {
         ]
     ]);
 } catch (Exception $e) {
+    // Логируем ошибку в файл
+    file_put_contents('error_log.txt', 'Error in get_arena_state.php: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
     echo json_encode(['success' => false, 'message' => 'Произошла ошибка: ' . $e->getMessage()]);
 }
 exit;
