@@ -174,18 +174,10 @@ async function loadArenaState(gameId) {
             }
             updatePlayerHand(playerHand);
 
-            // Проверяем, существует ли player_hand
-            if (state.player1_hand && Array.isArray(state.player1_hand)) {
-                state.player_hand = state.player1_hand;
-            } else if (state.player2_hand && Array.isArray(state.player2_hand)) {
-                state.player_hand = state.player2_hand;
-            } else {
-                console.error('Ошибка: player_hand не определён!');
-                return;
-            }
-
             // Добавляем обработчики для покрытия карт
-            addCoverCardHandlers(state);
+            if (state.current_turn !== userId) { // Только если это не ваш ход
+                addCoverCardHandlers({ ...state, player_hand: playerHand });
+            }
 
             checkGameStatus(); // Проверяем статус игры
         } else {
