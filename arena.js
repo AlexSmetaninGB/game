@@ -158,32 +158,35 @@ async function loadArenaState(gameId) {
         if (data.success) {
             const state = data.state;
 
-            // Логируем ключевые данные
-            console.log('Текущее состояние игры:', state);
-            console.log('Current User ID:', currentUserID);
-            console.log('Player1 Hand Player ID:', state.player1_hand[0]?.player_id);
-            console.log('Player2 Hand Player ID:', state.player2_hand[0]?.player_id);
-
             // Обновление индикатора хода
-            highlightActivePlayer(state.current_turn); // Вызываем обновление хода
+            highlightActivePlayer(state.current_turn);
 
             // Обновление карт на столе
             updateTableCards(state.table_cards);
- // Обновление информации об атакующем игроке
- updateAttackerInfo(state);
- toggleTakeCardsButton(state);
-    // Добавляем обработчики для покрытия карт
-    addCoverCardHandlers(state);
+
             // Обновление руки текущего игрока
             const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+            let playerHand = [];
             if (userId === state.player1_hand[0]?.player_id) {
-                console.log('Обновление руки для первого игрока:', state.player1_hand);
-                updatePlayerHand(state.player1_hand);
+                playerHand = state.player1_hand;
             } else if (userId === state.player2_hand[0]?.player_id) {
-                console.log('Обновление руки для второго игрока:', state.player2_hand);
-                updatePlayerHand(state.player2_hand);
+                playerHand = state.player2_hand;
             }
-            console.log('Текущий ход:', state.current_turn);
+            updatePlayerHand(playerHand);
+
+            // Проверяем, существует ли player_hand
+            if (state.player1_hand && Array.isArray(state.player1_hand)) {
+                state.player_hand = state.player1_hand;
+            } else if (state.player2_hand && Array.isArray(state.player2_hand)) {
+                state.player_hand = state.player2_hand;
+            } else {
+                console.error('Ошибка: player_hand не определён!');
+                return;
+            }
+
+            // Добавляем обработчики для покрытия карт
+            addCoverCardHandlers(state);
+
             checkGameStatus(); // Проверяем статус игры
         } else {
             console.error('Ошибка при загрузке состояния игры:', data.message);
@@ -587,6 +590,12 @@ function addCoverCardHandlers(state) {
     if (!tableCards || !playerHand) return;
 
     removeEventListeners(playerHand); // Снимаем старые обработчики
+
+    // Проверяем, существует ли player_hand
+    if (!state.player_hand || !Array.isArray(state.player_hand)) {
+        console.error('Ошибка: player_hand не определён!');
+        return;
+    }
 
     state.table_cards.forEach(topCard => {
         const topCardElement = Array.from(tableCards.children).find(card => card.dataset.cardId == topCard.id);
