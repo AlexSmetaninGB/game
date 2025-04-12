@@ -89,8 +89,6 @@ try {
         ]
     ]);
 } catch (Exception $e) {
-    // Возвращаем ошибку в JSON-формате
-    http_response_code(500); // Устанавливаем HTTP-статус ошибки
     echo json_encode(['success' => false, 'message' => 'Произошла ошибка: ' . $e->getMessage()]);
 }
 exit;
