@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'php/db.php';
+require 'db.php';
 
 $game_id = $_GET['game_id'] ?? null;
 if (!$game_id) {
@@ -9,7 +9,7 @@ if (!$game_id) {
 }
 
 try {
-    // Получаем текущее состояние игры
+    // Текущее состояние игры
     $stmt_game = $mysqli->prepare("
         SELECT 
             g.trump_suit, 
@@ -46,7 +46,7 @@ try {
     // Рука первого игрока (только table = 0)
     $player1_id = $game_data['player1_id'];
     $stmt_player1_hand = $mysqli->prepare("
-        SELECT id, card_value, card_suit, card_image, player_id 
+        SELECT id, card_value, card_suit, card_image 
         FROM cards 
         WHERE game_id = ? AND player_id = ? AND `table` = 0
     ");
@@ -57,7 +57,7 @@ try {
     // Рука второго игрока (только table = 0)
     $player2_id = $game_data['player2_id'];
     $stmt_player2_hand = $mysqli->prepare("
-        SELECT id, card_value, card_suit, card_image, player_id 
+        SELECT id, card_value, card_suit, card_image 
         FROM cards 
         WHERE game_id = ? AND player_id = ? AND `table` = 0
     ");
@@ -76,14 +76,6 @@ try {
         $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
     }
 
-    // Если массивы пустые, возвращаем их как []
-    if (empty($player1_hand)) {
-        $player1_hand = [];
-    }
-    if (empty($player2_hand)) {
-        $player2_hand = [];
-    }
-
     // Возвращаем успешный ответ
     echo json_encode([
         'success' => true,
@@ -97,8 +89,14 @@ try {
         ]
     ]);
 } catch (Exception $e) {
+    // Отключаем вывод предупреждений PHP
+    ini_set('display_errors', 0);
+    error_reporting(0);
+
     // Логируем ошибку в файл
     file_put_contents('error_log.txt', 'Error in get_arena_state.php: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
+
+    // Возвращаем ошибку в JSON-формате
     echo json_encode(['success' => false, 'message' => 'Произошла ошибка: ' . $e->getMessage()]);
 }
 exit;
