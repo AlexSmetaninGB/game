@@ -89,14 +89,6 @@ try {
         ]
     ]);
 } catch (Exception $e) {
-    // Отключаем вывод предупреждений PHP
-    ini_set('display_errors', 0);
-    error_reporting(0);
-
-    // Логируем ошибку в файл
-    file_put_contents('error_log.txt', 'Error in get_arena_state.php: ' . $e->getMessage() . PHP_EOL, FILE_APPEND);
-
-    // Возвращаем ошибку в JSON-формате
     echo json_encode(['success' => false, 'message' => 'Произошла ошибка: ' . $e->getMessage()]);
 }
 exit;
