@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'php/db.php';
+require 'db.php';
 
 $game_id = $_GET['game_id'] ?? null;
 if (!$game_id) {
@@ -65,12 +65,15 @@ try {
     $stmt_player2_hand->execute();
     $player2_hand = $stmt_player2_hand->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    // Если массивы пустые, устанавливаем их как []
-    if (empty($player1_hand)) {
-        $player1_hand = [];
+    // Добавляем пути к изображениям карт
+    foreach ($table_cards as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
     }
-    if (empty($player2_hand)) {
-        $player2_hand = [];
+    foreach ($player1_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
+    }
+    foreach ($player2_hand as &$card) {
+        $card['card_image'] = "/img/cards/" . htmlspecialchars($card['card_value']) . "_" . htmlspecialchars($card['card_suit']) . ".png";
     }
 
     // Возвращаем успешный ответ
