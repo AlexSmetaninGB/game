@@ -1,5 +1,5 @@
 // Глобальные переменные
-let gameId = parseInt(new URLSearchParams(window.location.search).get('game_id'), 10);
+let gameId = parseInt(document.getElementById('current-game-id').dataset.gameId, 10);
 let currentUserID = parseInt(document.getElementById('current-user-id')?.dataset.userId, 10) || 0;
 let player1Id = parseInt(document.getElementById('player1-id')?.dataset.playerId, 10) || 0;
 let player2Id = parseInt(document.getElementById('player2-id')?.dataset.playerId, 10) || 0;
@@ -82,7 +82,7 @@ async function loadArenaState(gameId) {
 }
 
 // Выделение активного игрока
-function highlightActivePlayer(currentTurn) {
+function highlightActivePlayer(currentTurn, attackerId) {
     const player1Card = document.getElementById('player1-card');
     const player2Card = document.getElementById('player2-card');
 
@@ -91,21 +91,28 @@ function highlightActivePlayer(currentTurn) {
         return;
     }
 
-    player1Card.classList.remove('active-turn');
-    player2Card.classList.remove('active-turn');
+    // Сбрасываем выделение
+    player1Card.classList.remove('active-turn', 'attacking-turn');
+    player2Card.classList.remove('active-turn', 'attacking-turn');
 
+    // Выделяем активного игрока
     if (currentTurn === player1Id) {
         player1Card.classList.add('active-turn'); // Первый игрок ходит
     } else if (currentTurn === player2Id) {
         player2Card.classList.add('active-turn'); // Второй игрок ходит
     }
 
-    const currentPlayerName = document.getElementById('current-player-name');
-    if (currentPlayerName) {
-        currentPlayerName.textContent = isYourTurn(currentTurn) ? 'Ваш ход!' : 'Ходит: Соперник';
+    // Выделяем атакующего игрока
+    if (attackerId === player1Id) {
+        player1Card.classList.add('attacking-turn'); // Первый игрок атакует
+    } else if (attackerId === player2Id) {
+        player2Card.classList.add('attacking-turn'); // Второй игрок атакует
     }
-}
-
+  // Обновляем текст индикатора хода
+  const currentPlayerName = document.getElementById('current-player-name');
+  if (currentPlayerName) {
+      currentPlayerName.textContent = isYourTurn(currentTurn) ? 'Ваш ход!' : 'Ходит: Соперник';
+  }
 // Обновление карт на столе
 function updateTableCards(tableCards) {
     const tableDiv = document.getElementById('table-cards');
@@ -388,4 +395,16 @@ function loadArenaChatMessages(gameId) {
             console.error('Ошибка сети при загрузке чата:', error);
             alert('Не удалось загрузить чат!');
         });
+}
+    // Обновляем текст атакующего игрока
+    const attackerName = document.getElementById('attacker-name');
+    if (attackerName) {
+        if (attackerId === player1Id) {
+            attackerName.textContent = `${player1Name} атакует!`;
+        } else if (attackerId === player2Id) {
+            attackerName.textContent = `${player2Name} атакует!`;
+        } else {
+            attackerName.textContent = 'Атакующий игрок не определён!';
+        }
+    }
 }
