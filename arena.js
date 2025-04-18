@@ -14,7 +14,15 @@ if (isNaN(gameId) || isNaN(currentUserID) || isNaN(player1Id) || isNaN(player2Id
 function isYourTurn(currentTurn) {
     return currentTurn === currentUserID;
 }
+function isCurrentUserPlayer1(state) {
+    const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+    return userId === state.player1_hand[0]?.player_id;
+}
 
+function isCurrentUserPlayer2(state) {
+    const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+    return userId === state.player2_hand[0]?.player_id;
+}
 // Выбор карты для хода
 function selectCardToPlay(cardId) {
     if (!isYourTurn()) {
@@ -218,7 +226,7 @@ async function loadArenaState(gameId) {
         if (data.success) {
             const state = data.state;
 
-            // Проверяем, существуют ли массивы
+            // Проверяем существование массивов
             if (!state.table_cards || !Array.isArray(state.table_cards)) {
                 console.error('Ошибка: table_cards не определён!');
                 state.table_cards = [];
@@ -238,18 +246,19 @@ async function loadArenaState(gameId) {
             // Обновление карт на столе
             updateTableCards(state.table_cards);
 
-            // Обновление руки текущего игрока
-            if (currentUserID === player1Id) {
-                updatePlayerHand(state.player1_hand);
-            } else if (currentUserID === player2Id) {
-                updatePlayerHand(state.player2_hand);
+            // Определяем текущую руку игрока
+            const userId = parseInt(document.getElementById('current-user-id').dataset.userId, 10);
+            let playerHand = [];
+            if (userId === state.player1_hand[0]?.player_id) {
+                playerHand = state.player1_hand;
+            } else if (userId === state.player2_hand[0]?.player_id) {
+                playerHand = state.player2_hand;
+            } else {
+                console.warn('Текущий пользователь не найден в player_hand.');
             }
 
-            // Активация/деактивация кнопки "Взять карты"
-            toggleTakeCardsButton(state);
-
-            // Добавление обработчиков для покрытия карт
-            addCoverCardHandlers(state);
+            // Обновление руки текущего игрока
+            updatePlayerHand(playerHand);
 
             checkGameStatus(); // Проверяем статус игры
         } else {
@@ -261,7 +270,6 @@ async function loadArenaState(gameId) {
         alert('Не удалось загрузить состояние игры!');
     }
 }
-
 // Выделение активного игрока
 function highlightActivePlayer(currentTurn) {
     const player1Card = document.getElementById('player1-card');
@@ -293,14 +301,18 @@ function updateTableCards(tableCards) {
 
     tableDiv.innerHTML = ''; // Очищаем блок перед обновлением
 
-    tableCards.forEach(card => {
-        const img = document.createElement('img');
-        img.src = card.card_image;
-        img.alt = `${card.card_value} ${card.card_suit}`;
-        img.className = 'table-card-image';
-        img.dataset.cardId = card.id; // Для идентификации карты
-        tableDiv.appendChild(img);
-    });
+    if (Array.isArray(tableCards) && tableCards.length > 0) {
+        tableCards.forEach(card => {
+            const img = document.createElement('img');
+            img.src = card.card_image;
+            img.alt = `${card.card_value} ${card.card_suit}`;
+            img.className = 'table-card-image';
+            img.dataset.cardId = card.id; // Для идентификации карты
+            tableDiv.appendChild(img);
+        });
+    } else {
+        console.warn('Карты на столе отсутствуют.');
+    }
 }
 
 // Обновление руки игрока
@@ -319,9 +331,9 @@ function updatePlayerHand(updatedHand) {
             li.dataset.cardId = card.id;
 
             const img = document.createElement('img');
-            img.src = card.card_image;
+            img.src = card.card_image; // Используем card_image из ответа сервера
             img.alt = `${card.card_value} ${card.card_suit}`;
-            img.className = 'card-image';
+            img.classList.add('card-image');
 
             li.appendChild(img);
 
@@ -334,7 +346,6 @@ function updatePlayerHand(updatedHand) {
         console.warn('Рука игрока пуста или данные отсутствуют.');
     }
 }
-
 // Активация/деактивация кнопки "Взять карты"
 function toggleTakeCardsButton(state) {
     const button = document.getElementById('take-cards-btn');
@@ -355,6 +366,7 @@ function addCoverCardHandlers(state) {
 
     removeEventListeners(playerHand); // Снимаем старые обработчики
 
+    // Проверяем, существует ли player_hand
     if (!state.player_hand || !Array.isArray(state.player_hand)) {
         console.error('Ошибка: player_hand не определён!');
         return;
